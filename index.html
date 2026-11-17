@@ -22,6 +22,7 @@
   .seal{width:46px;height:46px;flex:none}
   h1{font-family:Fraunces,serif;font-size:1.35rem;margin:0;line-height:1.1;color:var(--navy)}
   .sub{font-size:.8rem;color:var(--muted);margin-top:2px}
+  .backbtn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:8px 14px;color:var(--navy);font-weight:700;margin-bottom:14px}
   .iconbtn{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--navy);font-weight:700}
   h2{font-family:Fraunces,serif;color:var(--navy);font-size:1.5rem;margin:6px 0 14px}
   .card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);padding:18px}
@@ -433,9 +434,33 @@ function answerBlock(q){
 
 /* ===== Screens ===== */
 let state={};
-function go(view,noRender){ try{speechSynthesis.cancel();}catch(e){} const sb=document.getElementById("sub"); if(sb) sb.textContent=`${TEST.name} civics test · ${Q.length} ${TEST.senior?"65/20 ":"official "}questions`; window.scrollTo(0,0); state={view}; if(!noRender) render(); }
+const PARENT={words:"talkmenu"};
+const STATIC_VIEWS=["study","progress","settings","talkmenu","words"];
+let navFrom=null;
+function goBack(){
+  const target=PARENT[state.view]||"home";
+  if(history.state && history.state.app && navFrom===target) history.back();
+  else go(target);
+}
+window.addEventListener("popstate",()=>{
+  const h=location.hash.slice(1);
+  go(STATIC_VIEWS.includes(h)?h:"home");
+});
+function go(view,noRender){ try{speechSynthesis.cancel();}catch(e){}
+  if(state && state.view!==view) navFrom=state.view;
+  try{
+    if(view==="home"){ if(location.hash) history.replaceState(null,"",location.pathname+location.search); }
+    else if(location.hash!=="#"+view){ history.pushState({app:true},"","#"+view); }
+  }catch(e){} const sb=document.getElementById("sub"); if(sb) sb.textContent=`${TEST.name} civics test · ${Q.length} ${TEST.senior?"65/20 ":"official "}questions`; window.scrollTo(0,0); state={view}; if(!noRender) render(); }
 
 function render(){
+  renderView();
+  if(state.view!=="home"){
+    const label = PARENT[state.view] ? "← Back" : "← Home";
+    $app.insertAdjacentHTML("afterbegin",`<button class="backbtn" onclick="goBack()">${label}</button>`);
+  }
+}
+function renderView(){
   const v=state.view;
   if(v==="home") return home();
   if(v==="interview") return interview();
@@ -787,9 +812,9 @@ function study(){
     (!s || q.q.toLowerCase().includes(s) || (answersFor(q)||[]).join(" ").toLowerCase().includes(s)));
   const chips=[["all","All"],["miss","Needs practice"],...Object.entries(SECTIONS)];
   $app.innerHTML=`<h2>Study all questions</h2>
-  <div class="chips">${chips.map(([k,l])=>`<button class="chip ${f===k?"on":""}" onclick="state.filter='${k}';study()">${l}</button>`).join("")}</div>
+  <div class="chips">${chips.map(([k,l])=>`<button class="chip ${f===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
   <input type="search" placeholder="Search questions or answers…" value="${esc(state.search)}" oninput="state.search=this.value;studyList()">
-  <button class="chip ${state.mix?"on":""}" style="margin-top:10px" onclick="state.mix=!state.mix;state.rank=Object.fromEntries(Q.map(q=>[q.id,Math.random()]));study()">🔀 ${state.mix?"Mixed order — tap for normal order":"Mix up the order"}</button>
+  <button class="chip ${state.mix?"on":""}" style="margin-top:10px" onclick="state.mix=!state.mix;state.rank=Object.fromEntries(Q.map(q=>[q.id,Math.random()]));render()">🔀 ${state.mix?"Mixed order — tap for normal order":"Mix up the order"}</button>
   <div class="card" id="slist" style="margin-top:12px;padding-top:4px;padding-bottom:4px"></div>`;
   studyList(list);
 }
@@ -833,7 +858,7 @@ function confirmReset(){
   document.getElementById("modal").innerHTML=`<div class="modal" onclick="if(event.target===this)this.parentNode.innerHTML=''"><div class="card stack">
     <b style="color:var(--navy);font-size:1.1rem">Reset all progress?</b><div class="small">This clears every score on this device. Settings are kept.</div>
     <div class="two"><button class="btn ghost" onclick="document.getElementById('modal').innerHTML=''">Cancel</button>
-    <button class="btn no" onclick="stats={};store.set('stats',stats);document.getElementById('modal').innerHTML='';progress()">Reset</button></div></div></div>`;
+    <button class="btn no" onclick="stats={};store.set('stats',stats);document.getElementById('modal').innerHTML='';render()">Reset</button></div></div></div>`;
 }
 
 /* --- Settings --- */
@@ -852,7 +877,7 @@ function settingsView(){
     <div id="saved" class="small" style="text-align:center;margin-top:8px"></div>
   </div>`;
 }
-function setVersion(v){ settings.version=v; if(v==='2025') settings.senior=false; store.set('settings',settings); buildQ(); settingsView(); }
+function setVersion(v){ settings.version=v; if(v==='2025') settings.senior=false; store.set('settings',settings); buildQ(); render(); }
 function saveSettings(){
   VAR_FIELDS.forEach(f=>{ const el=document.getElementById("f_"+f.k); if(el) settings[f.k]=el.value.trim(); });
   const sn=document.getElementById("f_senior"); settings.senior = settings.version!=="2025" && !!(sn&&sn.checked);
