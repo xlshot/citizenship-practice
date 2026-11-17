@@ -87,7 +87,7 @@
   <header>
     <div class="brand" onclick="go('home')">
       <svg class="seal" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#1d2b4f"/><circle cx="24" cy="24" r="18" fill="none" stroke="#c99a2e" stroke-width="1.5"/><path d="M24 11l3.1 8.2 8.8.4-6.9 5.5 2.4 8.5L24 28.8l-7.4 4.8 2.4-8.5-6.9-5.5 8.8-.4z" fill="#fff"/></svg>
-      <div><h1>Citizenship Test Practice</h1><div class="sub">2025 civics test · 128 official questions</div></div>
+      <div><h1>Citizenship Test Practice</h1><div class="sub" id="sub"></div></div>
     </div>
     <button class="iconbtn" onclick="go('settings')" aria-label="Settings">⚙︎</button>
   </header>
@@ -97,13 +97,120 @@
 <div id="modal"></div>
 
 <script>
+/* ===== Official USCIS 2008 civics questions (100) — "*" marks the 20 questions for the 65/20 exemption ===== */
+const SECTIONS_08 = {
+  G1:"Principles of Democracy", G2:"System of Government", G3:"Rights & Responsibilities",
+  H1:"Colonial Period & Independence", H2:"The 1800s", H3:"Recent American History",
+  C1:"Geography", C2:"Symbols", C3:"Holidays"
+};
+const RAW_08 = `G1|What is the supreme law of the land?|the Constitution
+G1|What does the Constitution do?|sets up the government;defines the government;protects basic rights of Americans
+G1|The idea of self-government is in the first three words of the Constitution. What are these words?|We the People
+G1|What is an amendment?|a change (to the Constitution);an addition (to the Constitution)
+G1|What do we call the first ten amendments to the Constitution?|the Bill of Rights
+G1|What is one right or freedom from the First Amendment?|speech;religion;assembly;press;petition the government|*
+G1|How many amendments does the Constitution have?|twenty-seven (27)
+G1|What did the Declaration of Independence do?|announced our independence (from Great Britain);declared our independence (from Great Britain);said that the United States is free (from Great Britain)
+G1|What are two rights in the Declaration of Independence?|life;liberty;pursuit of happiness
+G1|What is freedom of religion?|You can practice any religion, or not practice a religion.
+G1|What is the economic system in the United States?|capitalist economy;market economy|*
+G1|What is the "rule of law"?|Everyone must follow the law.;Leaders must obey the law.;Government must obey the law.;No one is above the law.
+G2|Name one branch or part of the government.|Congress;legislative;President;executive;the courts;judicial|*
+G2|What stops one branch of government from becoming too powerful?|checks and balances;separation of powers
+G2|Who is in charge of the executive branch?|the President
+G2|Who makes federal laws?|Congress;Senate and House (of Representatives);(U.S. or national) legislature
+G2|What are the two parts of the U.S. Congress?|the Senate and House (of Representatives)|*
+G2|How many U.S. Senators are there?|one hundred (100)
+G2|We elect a U.S. Senator for how many years?|six (6)
+G2|Who is one of your state's U.S. Senators now?|@senators|*
+G2|The House of Representatives has how many voting members?|four hundred thirty-five (435)
+G2|We elect a U.S. Representative for how many years?|two (2)
+G2|Name your U.S. Representative.|@rep
+G2|Who does a U.S. Senator represent?|all people of the state
+G2|Why do some states have more Representatives than other states?|(because of) the state's population;(because) they have more people;(because) some states have more people
+G2|We elect a President for how many years?|four (4)
+G2|In what month do we vote for President?|November|*
+G2|What is the name of the President of the United States now?|@president|*
+G2|What is the name of the Vice President of the United States now?|@vp
+G2|If the President can no longer serve, who becomes President?|the Vice President
+G2|If both the President and the Vice President can no longer serve, who becomes President?|the Speaker of the House
+G2|Who is the Commander in Chief of the military?|the President
+G2|Who signs bills to become laws?|the President
+G2|Who vetoes bills?|the President
+G2|What does the President's Cabinet do?|advises the President
+G2|What are two Cabinet-level positions?|Secretary of Agriculture;Secretary of Commerce;Secretary of Defense;Secretary of Education;Secretary of Energy;Secretary of Health and Human Services;Secretary of Homeland Security;Secretary of Housing and Urban Development;Secretary of the Interior;Secretary of Labor;Secretary of State;Secretary of Transportation;Secretary of the Treasury;Secretary of Veterans Affairs;Attorney General;Vice President
+G2|What does the judicial branch do?|reviews laws;explains laws;resolves disputes (disagreements);decides if a law goes against the Constitution
+G2|What is the highest court in the United States?|the Supreme Court
+G2|How many justices are on the Supreme Court?|nine (9)
+G2|Who is the Chief Justice of the United States now?|@chief
+G2|Under our Constitution, some powers belong to the federal government. What is one power of the federal government?|to print money;to declare war;to create an army;to make treaties
+G2|Under our Constitution, some powers belong to the states. What is one power of the states?|provide schooling and education;provide protection (police);provide safety (fire departments);give a driver's license;approve zoning and land use
+G2|Who is the Governor of your state now?|@governor
+G2|What is the capital of your state?|@capital|*
+G2|What are the two major political parties in the United States?|Democratic and Republican|*
+G2|What is the political party of the President now?|@party
+G2|What is the name of the Speaker of the House of Representatives now?|@speaker
+G3|There are four amendments to the Constitution about who can vote. Describe one of them.|Citizens eighteen (18) and older (can vote).;You don't have to pay (a poll tax) to vote.;Any citizen can vote. (Women and men can vote.);A male citizen of any race (can vote).
+G3|What is one responsibility that is only for United States citizens?|serve on a jury;vote in a federal election|*
+G3|Name one right only for United States citizens.|vote in a federal election;run for federal office
+G3|What are two rights of everyone living in the United States?|freedom of expression;freedom of speech;freedom of assembly;freedom to petition the government;freedom of religion;the right to bear arms
+G3|What do we show loyalty to when we say the Pledge of Allegiance?|the United States;the flag
+G3|What is one promise you make when you become a United States citizen?|give up loyalty to other countries;defend the Constitution and laws of the United States;obey the laws of the United States;serve in the U.S. military (if needed);serve (do important work for) the nation (if needed);be loyal to the United States
+G3|How old do citizens have to be to vote for President?|eighteen (18) and older|*
+G3|What are two ways that Americans can participate in their democracy?|vote;join a political party;help with a campaign;join a civic group;join a community group;give an elected official your opinion on an issue;call Senators and Representatives;publicly support or oppose an issue or policy;run for office;write to a newspaper
+G3|When is the last day you can send in federal income tax forms?|April 15|*
+G3|When must all men register for the Selective Service?|at age eighteen (18);between eighteen (18) and twenty-six (26)
+H1|What is one reason colonists came to America?|freedom;political liberty;religious freedom;economic opportunity;practice their religion;escape persecution
+H1|Who lived in America before the Europeans arrived?|American Indians;Native Americans
+H1|What group of people was taken to America and sold as slaves?|Africans;people from Africa
+H1|Why did the colonists fight the British?|because of high taxes (taxation without representation);because the British army stayed in their houses (boarding, quartering);because they didn't have self-government
+H1|Who wrote the Declaration of Independence?|(Thomas) Jefferson
+H1|When was the Declaration of Independence adopted?|July 4, 1776
+H1|There were 13 original states. Name three.|New Hampshire;Massachusetts;Rhode Island;Connecticut;New York;New Jersey;Pennsylvania;Delaware;Maryland;Virginia;North Carolina;South Carolina;Georgia
+H1|What happened at the Constitutional Convention?|The Constitution was written.;The Founding Fathers wrote the Constitution.
+H1|When was the Constitution written?|1787
+H1|The Federalist Papers supported the passage of the U.S. Constitution. Name one of the writers.|(James) Madison;(Alexander) Hamilton;(John) Jay;Publius
+H1|What is one thing Benjamin Franklin is famous for?|U.S. diplomat;oldest member of the Constitutional Convention;first Postmaster General of the United States;writer of "Poor Richard's Almanac";started the first free libraries
+H1|Who is the "Father of Our Country"?|(George) Washington
+H1|Who was the first President?|(George) Washington|*
+H2|What territory did the United States buy from France in 1803?|the Louisiana Territory;Louisiana
+H2|Name one war fought by the United States in the 1800s.|War of 1812;Mexican-American War;Civil War;Spanish-American War
+H2|Name the U.S. war between the North and the South.|the Civil War;the War between the States
+H2|Name one problem that led to the Civil War.|slavery;economic reasons;states' rights
+H2|What was one important thing that Abraham Lincoln did?|freed the slaves (Emancipation Proclamation);saved (or preserved) the Union;led the United States during the Civil War|*
+H2|What did the Emancipation Proclamation do?|freed the slaves;freed slaves in the Confederacy;freed slaves in the Confederate states;freed slaves in most Southern states
+H2|What did Susan B. Anthony do?|fought for women's rights;fought for civil rights
+H3|Name one war fought by the United States in the 1900s.|World War I;World War II;Korean War;Vietnam War;(Persian) Gulf War|*
+H3|Who was President during World War I?|(Woodrow) Wilson
+H3|Who was President during the Great Depression and World War II?|(Franklin) Roosevelt
+H3|Who did the United States fight in World War II?|Japan, Germany, and Italy
+H3|Before he was President, Eisenhower was a general. What war was he in?|World War II
+H3|During the Cold War, what was the main concern of the United States?|Communism
+H3|What movement tried to end racial discrimination?|civil rights (movement)
+H3|What did Martin Luther King, Jr. do?|fought for civil rights;worked for equality for all Americans|*
+H3|What major event happened on September 11, 2001, in the United States?|Terrorists attacked the United States.
+H3|Name one American Indian tribe in the United States.|Cherokee;Navajo;Sioux;Chippewa;Choctaw;Pueblo;Apache;Iroquois;Creek;Blackfeet;Seminole;Cheyenne;Arawak;Shawnee;Mohegan;Huron;Oneida;Lakota;Crow;Teton;Hopi;Inuit
+C1|Name one of the two longest rivers in the United States.|Missouri (River);Mississippi (River)
+C1|What ocean is on the West Coast of the United States?|Pacific (Ocean)
+C1|What ocean is on the East Coast of the United States?|Atlantic (Ocean)
+C1|Name one U.S. territory.|Puerto Rico;U.S. Virgin Islands;American Samoa;Northern Mariana Islands;Guam
+C1|Name one state that borders Canada.|Maine;New Hampshire;Vermont;New York;Pennsylvania;Ohio;Michigan;Minnesota;North Dakota;Montana;Idaho;Washington;Alaska
+C1|Name one state that borders Mexico.|California;Arizona;New Mexico;Texas
+C1|What is the capital of the United States?|Washington, D.C.|*
+C1|Where is the Statue of Liberty?|New York (Harbor);Liberty Island;New Jersey;near New York City;on the Hudson (River)|*
+C2|Why does the flag have 13 stripes?|because there were 13 original colonies;because the stripes represent the original colonies
+C2|Why does the flag have 50 stars?|because there is one star for each state;because each star represents a state;because there are 50 states|*
+C2|What is the name of the national anthem?|The Star-Spangled Banner
+C3|When do we celebrate Independence Day?|July 4|*
+C3|Name two national U.S. holidays.|New Year's Day;Martin Luther King, Jr. Day;Presidents' Day;Memorial Day;Juneteenth;Independence Day;Labor Day;Columbus Day;Veterans Day;Thanksgiving;Christmas`;
+
 /* ===== Official USCIS 2025 civics questions (M-1778, 09/25) ===== */
-const SECTIONS = {
+const SECTIONS_25 = {
   G1:"Principles of Government", G2:"System of Government", G3:"Rights & Responsibilities",
   H1:"Colonial Period & Independence", H2:"The 1800s", H3:"Recent American History",
   S1:"Symbols", S2:"Holidays"
 };
-const RAW = `G1|What is the form of government of the United States?|Republic;Constitution-based federal republic;Representative democracy
+const RAW_25 = `G1|What is the form of government of the United States?|Republic;Constitution-based federal republic;Representative democracy
 G1|What is the supreme law of the land?|(U.S.) Constitution
 G1|Name one thing the U.S. Constitution does.|Forms the government;Defines powers of government;Defines the parts of government;Protects the rights of the people
 G1|The U.S. Constitution starts with the words "We the People." What does "We the People" mean?|Self-government;Popular sovereignty;Consent of the governed;People should govern themselves;(Example of) social contract
@@ -232,12 +339,22 @@ S2|Name three national U.S. holidays.|New Year's Day;Martin Luther King, Jr. Day
 S2|What is Memorial Day?|A holiday to honor soldiers who died in military service
 S2|What is Veterans Day?|A holiday to honor people in the (U.S.) military;A holiday to honor people who have served (in the U.S. military)`;
 
-const Q = RAW.split("\n").map((line,i)=>{
-  const [sec,q,a]=line.split("|");
-  const v = a.startsWith("@") ? a.slice(1) : null;
-  const multi = /Name (two|three|five)|What are (two|three)/.test(q);
-  return {id:i+1, sec, q, a: v?[]:a.split(";"), v, multi};
-});
+let SECTIONS, Q, TEST;
+function buildQ(){
+  const v08 = settings.version!=="2025";
+  SECTIONS = v08 ? SECTIONS_08 : SECTIONS_25;
+  const pre = v08 ? "08-" : "25-";
+  let all = (v08?RAW_08:RAW_25).split("\n").map((line,i)=>{
+    const [sec,q,a,star]=line.split("|");
+    const v = a.startsWith("@") ? a.slice(1) : null;
+    const multi = /Name (two|three|five)|What are (two|three)/.test(q);
+    return {id:pre+(i+1), n:i+1, sec, q, a: v?[]:a.split(";"), v, multi, star:star==="*"};
+  });
+  const senior = v08 && settings.senior;
+  if(senior) all = all.filter(q=>q.star);
+  Q = all;
+  TEST = v08 ? {name:"2008", ask:10, pass:6, senior} : {name:"2025", ask:20, pass:12, senior:false};
+}
 
 /* ===== Settings (officials) ===== */
 const VAR_FIELDS = [
@@ -245,6 +362,7 @@ const VAR_FIELDS = [
   {k:"vp", label:"Vice President", def:"JD Vance"},
   {k:"speaker", label:"Speaker of the House", def:"Mike Johnson", hint:"Expected to change when the new Congress meets in January 2027."},
   {k:"chief", label:"Chief Justice", def:"John Roberts"},
+  {k:"party", label:"President's political party", def:"Republican (Party)", v08:true},
   {k:"state", label:"Your state", def:"Montana"},
   {k:"senators", label:"Your state's 2 U.S. senators", def:"Steve Daines, Tim Sheehy", hint:"Separate the two names with a comma. Daines retires in January 2027 and Kurt Alme takes his seat."},
   {k:"rep", label:"Your U.S. representative", def:"Ryan Zinke", hint:"Missoula is in Montana's 1st (western) district. Zinke retires in January 2027 and Sam Forstag takes the seat."},
@@ -256,7 +374,10 @@ const store = {
   set(k,v){ try{ localStorage.setItem("cit_"+k, JSON.stringify(v)); }catch(e){} }
 };
 let settings = Object.assign(Object.fromEntries(VAR_FIELDS.map(f=>[f.k,f.def])), store.get("settings",{}));
-let stats = store.get("stats",{}); // id -> {r,w,s}
+if(!settings.version) settings.version="2008";
+let stats = store.get("stats",{}); // "08-5" -> {r,w,s}
+for(const k of Object.keys(stats)) if(/^\d+$/.test(k)){ stats["25-"+k]=stats[k]; delete stats[k]; }
+buildQ();
 
 function answersFor(q){
   if(!q.v) return q.a;
@@ -312,7 +433,7 @@ function answerBlock(q){
 
 /* ===== Screens ===== */
 let state={};
-function go(view,noRender){ try{speechSynthesis.cancel();}catch(e){} window.scrollTo(0,0); state={view}; if(!noRender) render(); }
+function go(view,noRender){ try{speechSynthesis.cancel();}catch(e){} const sb=document.getElementById("sub"); if(sb) sb.textContent=`${TEST.name} civics test · ${Q.length} ${TEST.senior?"65/20 ":"official "}questions`; window.scrollTo(0,0); state={view}; if(!noRender) render(); }
 
 function render(){
   const v=state.view;
@@ -544,37 +665,37 @@ function home(){
   const missingVars=VAR_FIELDS.filter(f=>!settings[f.k]).length;
   $app.innerHTML=`
   <div class="card stack" style="margin-bottom:16px">
-    <div class="row"><b style="color:var(--navy)">Questions learned</b><span class="small">${m} of 128</span></div>
-    <div class="meter"><i style="width:${m/128*100}%"></i></div>
+    <div class="row"><b style="color:var(--navy)">Questions learned</b><span class="small">${m} of ${Q.length}</span></div>
+    <div class="meter"><i style="width:${m/Q.length*100}%"></i></div>
     <div class="small">A question counts as learned after 2 right answers in a row. Questions you miss come back more often.</div>
   </div>
   ${missingVars?`<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><b>Set up first:</b> ${missingVars} answers depend on your state (senators, governor…). <a href="#" onclick="go('settings');return false">Fill them in →</a></div>`:""}
   <div class="menu">
-    <button onclick="startInterview()"><div class="ico" style="background:#e4e9f5">🗣️</div><div><b>Practice interview</b><span class="d">20 questions, like the real test. Answer out loud, then check. Pass with 12.</span></div></button>
+    <button onclick="startInterview()"><div class="ico" style="background:#e4e9f5">🗣️</div><div><b>Practice interview</b><span class="d">${TEST.ask} questions, like the real test. Answer out loud, then check. Pass with ${TEST.pass}.</span></div></button>
     <button onclick="startMC()"><div class="ico" style="background:#f6e1df">✅</div><div><b>Multiple choice</b><span class="d">10 quick questions — tap the right answer.</span></div></button>
     <button onclick="startRead()"><div class="ico" style="background:#e6efe9">👓</div><div><b>Reading test</b><span class="d">Read a sentence out loud. You need 1 of 3 right.</span></div></button>
     <button onclick="startWrite()"><div class="ico" style="background:#efe6f3">✍️</div><div><b>Writing test</b><span class="d">Listen to a sentence and write it with your finger. You need 1 of 3 right.</span></div></button>
     <button onclick="go('talkmenu')"><div class="ico" style="background:#fbeede">💬</div><div><b>Interview questions</b><span class="d">Practice the questions the officer asks about you and your application.</span></div></button>
-    <button onclick="go('study')"><div class="ico" style="background:#f3ead2">📖</div><div><b>Study all questions</b><span class="d">Read all 128 questions and answers by topic.</span></div></button>
+    <button onclick="go('study')"><div class="ico" style="background:#f3ead2">📖</div><div><b>Study all questions</b><span class="d">Read all ${Q.length} questions and answers by topic.</span></div></button>
     <button onclick="go('progress')"><div class="ico" style="background:#dff0e5">📊</div><div><b>My progress</b><span class="d">See which questions need more practice.</span></div></button>
   </div>
-  <p class="small" style="margin-top:22px">Questions from the official USCIS list for the 2025 civics test (for applications filed on or after Oct 20, 2025). Before the interview, check current officials at <a href="https://www.uscis.gov/citizenship/testupdates">uscis.gov/citizenship/testupdates</a>.</p>`;
+  <p class="small" style="margin-top:22px">${TEST.name==="2008"?"Official USCIS questions for the 2008 civics test (for applications filed before Oct 20, 2025)":"Official USCIS questions for the 2025 civics test (for applications filed on or after Oct 20, 2025)"}${TEST.senior?", 65/20 version":""}. You can switch versions in Settings. Before the interview, check current officials at <a href="https://www.uscis.gov/citizenship/testupdates">uscis.gov/citizenship/testupdates</a>.</p>`;
 }
 
 /* --- Practice interview (oral, self-graded) --- */
 function startInterview(){
   go("interview",true);
-  state.qs=shuffle(pick(Q,20)); state.i=0; state.score=0; state.missed=[]; state.shown=false;
+  state.qs=shuffle(pick(Q,TEST.ask)); state.i=0; state.score=0; state.missed=[]; state.shown=false;
   render();
 }
 function interview(){
   const {qs,i}=state;
   if(i>=qs.length){
-    const pass=state.score>=12;
+    const pass=state.score>=TEST.pass;
     $app.innerHTML=`<div class="card result">
       <div class="small">Your score</div>
-      <div class="big">${state.score} / 20</div>
-      <div class="verdict ${pass?"pass":"fail"}">${pass?"🎉 You passed!":"Keep practicing — you need 12."}</div>
+      <div class="big">${state.score} / ${state.qs.length}</div>
+      <div class="verdict ${pass?"pass":"fail"}">${pass?"🎉 You passed!":`Keep practicing — you need ${TEST.pass}.`}</div>
       ${state.missed.length?`<div class="missed"><b style="color:var(--navy)">Review these:</b>${state.missed.map(q=>`<div class="item"><b>${esc(q.q)}</b><div style="margin-top:6px">${(answersFor(q)||["(set in Settings)"]).slice(0,3).map(esc).join(" · ")}</div></div>`).join("")}</div>`:""}
       <div class="two" style="margin-top:22px"><button class="btn ghost" onclick="go('home')">Home</button><button class="btn primary" onclick="startInterview()">New test</button></div>
     </div>`;
@@ -582,8 +703,8 @@ function interview(){
   }
   const q=qs[i];
   $app.innerHTML=`
-  <div class="progress-top"><span>Question ${i+1} of 20</span><span>✓ ${state.score} right</span></div>
-  <div class="meter" style="margin-bottom:16px"><i style="width:${i/20*100}%"></i></div>
+  <div class="progress-top"><span>Question ${i+1} of ${qs.length}</span><span>✓ ${state.score} right</span></div>
+  <div class="meter" style="margin-bottom:16px"><i style="width:${i/qs.length*100}%"></i></div>
   <div class="card stack">
     <span class="pill">${SECTIONS[q.sec]}</span>
     <div class="qtext">${esc(q.q)}</div>
@@ -682,7 +803,7 @@ function studyList(list){
   el.innerHTML=list.map(q=>{
     const st=stats[q.id]; const dot=!st?"":mastered(q.id)?`<span class="dot" style="background:var(--green)" title="Learned"></span>`:st.w?`<span class="dot" style="background:var(--red)" title="Needs practice"></span>`:"";
     const a=answersFor(q);
-    return `<div class="studyq"><div class="n">#${q.id} · ${SECTIONS[q.sec]}${dot}</div><div class="q">${esc(q.q)}</div>
+    return `<div class="studyq"><div class="n">#${q.n} · ${SECTIONS[q.sec]}${dot}</div><div class="q">${esc(q.q)}</div>
     ${a?`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:`<div class="warn" style="font-size:.9rem">Not set — add in Settings ⚙︎</div>`}
     ${canSpeak?`<div style="margin-top:8px">${speakBtn(q.q)}</div>`:""}</div>`;
   }).join("");
@@ -694,8 +815,8 @@ function progress(){
   const trouble=Q.filter(q=>stats[q.id]&&stats[q.id].w>0&&!mastered(q.id)).sort((a,b)=>stats[b.id].w-stats[a.id].w).slice(0,15);
   $app.innerHTML=`<h2>My progress</h2>
   <div class="card stack">
-    <div class="row"><b>Learned</b><span>${m} / 128</span></div><div class="meter"><i style="width:${m/128*100}%"></i></div>
-    <div class="row"><b>Practiced at least once</b><span>${seen} / 128</span></div><div class="meter"><i style="width:${seen/128*100}%;background:var(--gold)"></i></div>
+    <div class="row"><b>Learned</b><span>${m} / ${Q.length}</span></div><div class="meter"><i style="width:${m/Q.length*100}%"></i></div>
+    <div class="row"><b>Practiced at least once</b><span>${seen} / ${Q.length}</span></div><div class="meter"><i style="width:${seen/Q.length*100}%;background:var(--gold)"></i></div>
   </div>
   <div class="card" style="margin-top:14px">
     <b style="color:var(--navy)">By topic</b>
@@ -720,13 +841,22 @@ function settingsView(){
   $app.innerHTML=`<h2>Settings</h2>
   <div class="card">
     <div class="small">Some answers change with elections or depend on where she lives. Fill these in once — they're saved on this device. Double-check them at <a href="https://www.uscis.gov/citizenship/testupdates">uscis.gov/citizenship/testupdates</a> before the interview.</div>
-    ${VAR_FIELDS.map(f=>`<label for="f_${f.k}">${f.label}</label><input type="text" id="f_${f.k}" value="${esc(settings[f.k]||"")}" placeholder="${f.k==="senators"?"e.g. First Last, First Last":""}">${f.hint?`<div class="hint">${f.hint}</div>`:""}`).join("")}
+    <label>Which test is she taking?</label>
+    <div class="two">
+      <button type="button" class="chip ${settings.version!=="2025"?"on":""}" style="padding:12px" onclick="setVersion('2008')">2008 test<br><span style="font-size:.75rem">100 questions · filed before Oct 20, 2025</span></button>
+      <button type="button" class="chip ${settings.version==="2025"?"on":""}" style="padding:12px" onclick="setVersion('2025')">2025 test<br><span style="font-size:.75rem">128 questions · filed Oct 20, 2025 or later</span></button>
+    </div>
+    ${settings.version!=="2025"?`<label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;color:var(--ink)"><input type="checkbox" id="f_senior" ${settings.senior?"checked":""} style="width:22px;height:22px;margin-top:2px"> <span><b style="color:var(--navy)">65/20 version</b> — only the 20 starred questions. For people 65 or older who have had a green card for 20+ years.</span></label>`:""}
+    ${VAR_FIELDS.filter(f=>!f.v08||settings.version!=="2025").map(f=>`<label for="f_${f.k}">${f.label}</label><input type="text" id="f_${f.k}" value="${esc(settings[f.k]||"")}" placeholder="${f.k==="senators"?"e.g. First Last, First Last":""}">${f.hint?`<div class="hint">${f.hint}</div>`:""}`).join("")}
     <button class="btn primary" style="margin-top:20px" onclick="saveSettings()">Save</button>
     <div id="saved" class="small" style="text-align:center;margin-top:8px"></div>
   </div>`;
 }
+function setVersion(v){ settings.version=v; if(v==='2025') settings.senior=false; store.set('settings',settings); buildQ(); settingsView(); }
 function saveSettings(){
-  VAR_FIELDS.forEach(f=>settings[f.k]=document.getElementById("f_"+f.k).value.trim());
+  VAR_FIELDS.forEach(f=>{ const el=document.getElementById("f_"+f.k); if(el) settings[f.k]=el.value.trim(); });
+  const sn=document.getElementById("f_senior"); settings.senior = settings.version!=="2025" && !!(sn&&sn.checked);
+  buildQ();
   store.set("settings",settings);
   document.getElementById("saved").textContent="Saved ✓";
   setTimeout(()=>go("home"),600);
